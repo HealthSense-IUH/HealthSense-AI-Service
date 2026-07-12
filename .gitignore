@@ -1,9 +1,25 @@
 # HealthSense AI Service
 
+# Python
 venv/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
 .env
+
+# Model files (nặng, không nên commit)
 app/models/*.pkl
 app/models/*.joblib
+
+# Docker
+docker-compose.override.yml

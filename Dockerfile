@@ -13,13 +13,22 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ========================
 FROM python:3.12-slim
 
+# Tạo user non-root (bảo mật: không chạy container bằng root)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
 WORKDIR /app
 
-# Copy dependencies từ builder stage (multi-stage build giúp image nhẹ hơn)
+# Copy dependencies từ builder stage
 COPY --from=builder /install /usr/local
 
 # Copy source code
 COPY ./app ./app
+
+# Tạo thư mục models và gán quyền cho appuser
+RUN mkdir -p ./app/models && chown -R appuser:appuser ./app
+
+# Chuyển sang user non-root
+USER appuser
 
 # Port mặc định
 EXPOSE 8000

@@ -1,0 +1,15 @@
+# Không copy những thứ này vào Docker image
+venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+.gitignore
+.env
+.vscode/
+.idea/
+*.md
+docker-compose*.yml
+Dockerfile
+app/models/*.pkl
+app/models/*.joblib
