@@ -1,0 +1,9 @@
+# HealthSense ML Service
+
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+app/models/*.pkl
+app/models/*.joblib
