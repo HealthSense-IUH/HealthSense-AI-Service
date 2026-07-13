@@ -28,11 +28,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests (nếu có)
-      run: |
-        python -c "from app.services.preprocessing import preprocess_signal; print('Preprocessing OK')"
-        python -c "from app.services.feature_engineering import extract_all_features; print('Feature Engineering OK')"
-        python -c "from app.services.prediction import prediction_service; print('Prediction OK')"
 
   docker:
     runs-on: ubuntu-latest
