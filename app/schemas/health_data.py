@@ -12,18 +12,21 @@ class SensorDataRequest(BaseModel):
 
 
 class HRVFeatures(BaseModel):
-    """10 đặc trưng HRV được trích xuất bằng toán học (Khớp 100% với MIT-BIH)."""
+    """13 đặc trưng được trích xuất bằng toán học (Khớp 100% với mô hình Random Forest)."""
     
-    mean_nni: Optional[float] = Field(None, description="Khoảng R-R trung bình (ms)")
-    sdnn: Optional[float] = Field(None, description="Độ lệch chuẩn R-R (ms)")
-    rmssd: Optional[float] = Field(None, description="RMSSD (ms)")
-    pnn50: Optional[float] = Field(None, description="Tỷ lệ cặp R-R chênh > 50ms (%)")
-    cvnni: Optional[float] = Field(None, description="Hệ số biến thiên nhịp")
-    cvsd: Optional[float] = Field(None, description="Hệ số biến thiên RMSSD")
-    lf: Optional[float] = Field(None, description="Năng lượng phổ tần số thấp")
-    hf: Optional[float] = Field(None, description="Năng lượng phổ tần số cao")
-    lf_hf_ratio: Optional[float] = Field(None, description="Tỷ lệ LF/HF")
-    total_power: Optional[float] = Field(None, description="Tổng năng lượng phổ")
+    HR_mean: Optional[float] = Field(None, description="Nhịp tim trung bình (BPM)")
+    Mean_NN: Optional[float] = Field(None, description="Khoảng R-R trung bình (ms)")
+    SDNN: Optional[float] = Field(None, description="Độ lệch chuẩn R-R (ms)")
+    RMSSD: Optional[float] = Field(None, description="RMSSD (ms)")
+    pNN50: Optional[float] = Field(None, description="Tỷ lệ cặp R-R chênh > 50ms (%)")
+    NN50: Optional[float] = Field(None, description="Số lượng cặp R-R chênh > 50ms")
+    CV: Optional[float] = Field(None, description="Hệ số biến thiên (%)")
+    LF: Optional[float] = Field(None, description="Năng lượng phổ tần số thấp")
+    HF: Optional[float] = Field(None, description="Năng lượng phổ tần số cao")
+    LF_HF_Ratio: Optional[float] = Field(None, description="Tỷ lệ LF/HF")
+    LF_norm: Optional[float] = Field(None, description="Năng lượng phổ LF chuẩn hóa (%)")
+    HF_norm: Optional[float] = Field(None, description="Năng lượng phổ HF chuẩn hóa (%)")
+    Total_Power: Optional[float] = Field(None, description="Tổng năng lượng phổ")
 
 
 class PredictionResponse(BaseModel):
