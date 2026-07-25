@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import welch
+from scipy.signal import welch, find_peaks, butter, filtfilt
 from scipy.interpolate import interp1d
 
 def calculate_time_domain(rr_intervals: np.ndarray) -> dict:
@@ -91,4 +91,36 @@ def extract_hrv_features(valid_rr: np.ndarray) -> dict:
         if np.isnan(v):
             features[k] = 0.0
             
+    return features
+
+def butter_bandpass_filter(data, lowcut=0.5, highcut=8.0, fs=125.0, order=3):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    y = filtfilt(b, a, data)
+    return y
+
+def extract_features_from_csv_data(time_ms_array, ppg_array, fs=125.0):
+    # Lọc nhiễu
+    clean_ppg = butter_bandpass_filter(ppg_array, fs=fs)
+    
+    # Tìm đỉnh
+    min_distance = int(0.25 * fs) # Khoảng cách tối thiểu giữa 2 nhịp tim
+    peaks, _ = find_peaks(clean_ppg, distance=min_distance, prominence=np.std(clean_ppg)*0.5)
+    
+    if len(peaks) < 10:
+        raise ValueError("Không tìm đủ số nhịp tim (>=10 đỉnh) trong dữ liệu.")
+        
+    # Tính R-R Intervals (ms)
+    peak_times = time_ms_array[peaks]
+    rr_intervals = np.diff(peak_times)
+    
+    # BỘ LỌC SINH LÝ: Bỏ các RR vô lý (<300ms hoặc >2000ms)
+    valid_rr = rr_intervals[(rr_intervals >= 300) & (rr_intervals <= 2000)]
+    
+    if len(valid_rr) < 10:
+        raise ValueError("Sau khi lọc, số lượng nhịp tim hợp lệ không đủ 10.")
+        
+    features = extract_hrv_features(valid_rr)
     return features

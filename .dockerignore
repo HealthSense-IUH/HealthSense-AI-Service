@@ -11,5 +11,3 @@ __pycache__/
 *.md
 docker-compose*.yml
 Dockerfile
-app/models/*.pkl
-app/models/*.joblib

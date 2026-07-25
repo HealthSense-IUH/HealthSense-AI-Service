@@ -7,12 +7,12 @@ class PredictionService:
     def __init__(self):
         self.model = None
         self.is_model_loaded = False
-        self.model_version = "v1.0.2-AFib-RF"
+        self.model_version = "v2.0.0-MIMIC-Pipeline"
         self._load_model()
 
     def _load_model(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(base_dir, "models", "afib_rf_model.pkl")
+        model_path = os.path.join(base_dir, "models", "mimic_afib_pipeline.pkl")
 
         try:
             if os.path.exists(model_path):
