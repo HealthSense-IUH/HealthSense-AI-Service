@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+    image: ${REGISTRY:-healthsense}/${IMAGE_NAME:-ai-service}:${IMAGE_TAG:-latest}
     ports:
       - "8000:8000"
     environment:
