@@ -15,7 +15,7 @@ from app.services.preprocessing import apply_physiological_filter
 from app.services.feature_engineering import extract_hrv_features, extract_features_from_csv_data
 from app.services.prediction import prediction_service
 
-router = APIRouter(prefix="/api/v1", tags=["Prediction"])
+router = APIRouter(prefix="/api", tags=["Prediction"])
 
 
 @router.get("/health", response_model=HealthCheckResponse)
