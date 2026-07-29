@@ -4,19 +4,32 @@ Microservice chuyên phục vụ ML inference cho dự án HealthSense.
 Nhận dữ liệu cảm biến PPG, trích xuất đặc trưng HRV, và trả về dự đoán trạng thái sức khỏe.
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import prediction
+from app.services.consumer import consumer
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Khởi động RabbitMQ consumer
+    await consumer.start()
+    yield
+    # Shutdown: Đóng kết nối RabbitMQ
+    await consumer.stop()
+
 
 app = FastAPI(
     title="HealthSense AI Service",
     description=(
         "Microservice dự đoán trạng thái sức khỏe từ tín hiệu PPG (nhịp tim). "
-        "Nhận dữ liệu cảm biến MAX30102, trích xuất 16 đặc trưng HRV, "
+        "Nhận dữ liệu cảm biến MAX30102, trích xuất đặc trưng HRV, "
         "và sử dụng model Random Forest để phân loại trạng thái."
     ),
-    version="0.1.0",
+    version="0.2.0-Event-Driven",
+    lifespan=lifespan,
 )
 
 # CORS - cho phép Spring Boot Backend và ESP32 gọi API
