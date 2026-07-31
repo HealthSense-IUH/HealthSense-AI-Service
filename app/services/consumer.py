@@ -97,8 +97,22 @@ class RabbitMQConsumer:
                 dt = np.mean(np.diff(time_ms_array[:min(100, len(time_ms_array))])) / 1000.0
                 if dt > 0:
                     fs = 1.0 / dt
-                    
-            logger.info(f"[Record {record_id}] Extracting HRV features (fs={fs:.2f}Hz)...")
+
+            # Bỏ 2 giây dữ liệu đầu tiên (2000ms) để loại bỏ nhiễu khởi động cảm biến / transient
+            skip_ms = 2000.0
+            if len(time_ms_array) > 0:
+                start_time = time_ms_array[0]
+                valid_mask = time_ms_array >= (start_time + skip_ms)
+                if np.sum(valid_mask) >= 100:
+                    time_ms_array = time_ms_array[valid_mask]
+                    ppg_array = ppg_array[valid_mask]
+                else:
+                    cut_samples = int(2.0 * fs)
+                    if len(time_ms_array) > cut_samples + 50:
+                        time_ms_array = time_ms_array[cut_samples:]
+                        ppg_array = ppg_array[cut_samples:]
+
+            logger.info(f"[Record {record_id}] Extracting HRV features (fs={fs:.2f}Hz, samples after 2s trim={len(ppg_array)})...")
             features = extract_features_from_csv_data(time_ms_array, ppg_array, fs=fs)
             
             # 3. Chạy model dự đoán
