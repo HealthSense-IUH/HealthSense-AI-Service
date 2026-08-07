@@ -86,8 +86,8 @@ class RabbitMQConsumer:
             if time_col not in df.columns or ppg_col not in df.columns:
                 raise ValueError(f"File CSV thiếu cột '{time_col}' hoặc '{ppg_col}'")
                 
-            time_ms_array = df[time_col].values
-            ppg_array = df[ppg_col].values
+            time_ms_array = np.asarray(df[time_col].values, dtype=float)
+            ppg_array = np.asarray(df[ppg_col].values, dtype=float)
             
             if np.max(time_ms_array) < 100000 and np.mean(np.diff(time_ms_array)) < 1.0:
                 time_ms_array = time_ms_array * 1000.0
@@ -119,9 +119,9 @@ class RabbitMQConsumer:
             logger.info(f"[Record {record_id}] Running AFib prediction...")
             prediction_label, confidence = prediction_service.predict(features)
             
-            if "AFib" in str(prediction_label) or "1" in str(prediction_label):
+            if "AFib" in prediction_label or "1" in prediction_label:
                 callback_label = "AFIB"
-            elif "Normal" in str(prediction_label) or "0" in str(prediction_label):
+            elif "Normal" in prediction_label or "0" in prediction_label:
                 callback_label = "NORMAL"
             else:
                 callback_label = "UNCERTAIN"
@@ -132,7 +132,7 @@ class RabbitMQConsumer:
             callback_payload = {
                 "recordId": record_id,
                 "predictionLabel": callback_label,
-                "confidence": round(float(confidence), 4),
+                "confidence": round(confidence, 4),
                 "hrvFeaturesJson": json.dumps(features)
             }
             
