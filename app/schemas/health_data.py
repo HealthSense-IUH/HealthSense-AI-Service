@@ -27,6 +27,9 @@ class HRVFeatures(BaseModel):
     LF_norm: Optional[float] = Field(None, description="Năng lượng phổ LF chuẩn hóa (%)")
     HF_norm: Optional[float] = Field(None, description="Năng lượng phổ HF chuẩn hóa (%)")
     Total_Power: Optional[float] = Field(None, description="Tổng năng lượng phổ")
+    SD1: Optional[float] = Field(None, description="Poincaré SD1 (ms)")
+    SD2: Optional[float] = Field(None, description="Poincaré SD2 (ms)")
+    SampEn: Optional[float] = Field(None, description="Sample Entropy")
 
 
 class PredictionResponse(BaseModel):

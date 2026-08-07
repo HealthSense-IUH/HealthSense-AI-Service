@@ -64,7 +64,7 @@ async def predict(request: SensorDataRequest):
 
 @router.post("/predict-csv", response_model=PredictionResponse)
 async def predict_from_csv(file: UploadFile = File(...)):
-    if not file.filename.endswith('.csv'):
+    if not file.filename or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Vui lòng tải lên file định dạng CSV.")
         
     try:
@@ -78,8 +78,8 @@ async def predict_from_csv(file: UploadFile = File(...)):
         if time_col not in df.columns or ppg_col not in df.columns:
             raise HTTPException(status_code=400, detail=f"File CSV phải có cột thời gian và tín hiệu (VD: '{time_col}' và '{ppg_col}')")
             
-        time_ms_array = df[time_col].values
-        ppg_array = df[ppg_col].values
+        time_ms_array = np.asarray(df[time_col].values, dtype=float)
+        ppg_array = np.asarray(df[ppg_col].values, dtype=float)
         
         # Nếu cột time nhỏ (ví dụ tính bằng giây), chuyển sang ms
         if np.max(time_ms_array) < 100000 and np.mean(np.diff(time_ms_array)) < 1.0:

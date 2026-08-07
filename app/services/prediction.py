@@ -7,12 +7,12 @@ class PredictionService:
     def __init__(self):
         self.model = None
         self.is_model_loaded = False
-        self.model_version = "v2.0.0-MIMIC-Pipeline"
+        self.model_version = "v3.0.0-BestModel-8165"
         self._load_model()
 
     def _load_model(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(base_dir, "models", "mimic_afib_pipeline.pkl")
+        model_path = os.path.join(base_dir, "models", "best_model_8165.pkl")
 
         try:
             if os.path.exists(model_path):
@@ -25,15 +25,20 @@ class PredictionService:
             print(f"[ERROR] Loi khi tai mo hinh: {e}")
 
     def predict(self, features_dict: dict) -> tuple[str, float]:
-        if not self.is_model_loaded:
+        if not self.is_model_loaded or self.model is None:
             raise RuntimeError("Mô hình chưa được tải thành công. Vui lòng kiểm tra lại file .pkl.")
 
-        # Phải khớp 100% với tên cột lúc huấn luyện bằng RandomForest
-        feature_columns = [
-            'HR_mean', 'Mean_NN', 'SDNN', 'RMSSD', 'pNN50', 'NN50', 'CV',
-            'LF', 'HF', 'LF_HF_Ratio', 'LF_norm', 'HF_norm', 'Total_Power'
-        ]
+        # Lấy tên các đặc trưng mà mô hình yêu cầu (tương thích ngược với model cũ)
+        if hasattr(self.model, "feature_names_in_"):
+            feature_columns = list(self.model.feature_names_in_)
+        else:
+            # Fallback nếu model cũ không lưu feature_names_in_
+            feature_columns = [
+                'HR_mean', 'Mean_NN', 'SDNN', 'RMSSD', 'pNN50', 'NN50', 'CV',
+                'LF', 'HF', 'LF_HF_Ratio', 'LF_norm', 'HF_norm', 'Total_Power'
+            ]
         
+        # Tạo dataframe chỉ chứa các cột mà model cần (đảm bảo model cũ không nhận feature lạ)
         input_df = pd.DataFrame([features_dict], columns=feature_columns)
         
         # Mô hình RandomForest mới không dùng scaler, có thể feed thẳng dataframe
