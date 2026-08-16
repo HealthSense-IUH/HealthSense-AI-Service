@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     AWS_S3_REGION: str = os.getenv("AWS_S3_REGION", "")
     AWS_S3_ENDPOINT_URL: str = os.getenv("AWS_S3_ENDPOINT_URL", "")
 
+    # AI Model Config
+    MODEL_FILE: str = os.getenv("MODEL_FILE", "mimic_afib_pipeline.pkl")
+
     # Core Service Webhook URL
     CORE_CALLBACK_URL: str = os.getenv("CORE_CALLBACK_URL", "")
 
