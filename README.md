@@ -43,8 +43,11 @@ Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự
 | Method | Path | Mô tả |
 |--------|------|-------|
 | GET | `/` | Trang chủ |
-| GET | `/api/v1/health` | Kiểm tra trạng thái server |
-| POST | `/api/v1/predict` | Nhận dữ liệu cảm biến, trả về dự đoán |
+| GET | `/api/health` | Kiểm tra trạng thái server, model đang dùng và số đặc trưng |
+| GET | `/api/models` | Liệt kê toàn bộ các file model (.pkl, .joblib) có trong `app/models/` kèm metadata |
+| POST | `/api/models/active` | Chuyển đổi nóng model AI đang chạy mà không cần restart server |
+| POST | `/api/predict` | Nhận mảng RR intervals, trả về dự đoán AFib |
+| POST | `/api/predict-csv` | Tải lên file CSV chứa tín hiệu PPG thô để dự đoán |
 
 ---
 

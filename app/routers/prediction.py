@@ -10,6 +10,8 @@ from app.schemas.health_data import (
     PredictionResponse,
     HealthCheckResponse,
     HRVFeatures,
+    ModelListResponse,
+    SelectModelRequest,
 )
 from app.services.preprocessing import apply_physiological_filter
 from app.services.feature_engineering import extract_hrv_features, extract_features_from_csv_data
@@ -20,11 +22,36 @@ router = APIRouter(prefix="/api", tags=["Prediction"])
 
 @router.get("/health", response_model=HealthCheckResponse)
 async def health_check():
+    """Kiểm tra trạng thái hoạt động của AI Service và model hiện tại."""
     return HealthCheckResponse(
         status="ok",
         model_loaded=prediction_service.is_model_loaded,
         model_version=prediction_service.model_version,
+        active_model_file=prediction_service.active_model_file,
+        feature_count=len(prediction_service.expected_features),
     )
+
+
+@router.get("/models", response_model=ModelListResponse, tags=["Model Management"])
+async def list_models():
+    """Liệt kê danh sách tất cả các mô hình có sẵn trong thư mục app/models."""
+    models = prediction_service.list_available_models()
+    return ModelListResponse(
+        active_model=prediction_service.active_model_file,
+        available_models=models,
+    )
+
+
+@router.post("/models/active", response_model=HealthCheckResponse, tags=["Model Management"])
+async def switch_model(request: SelectModelRequest):
+    """Chuyển đổi nóng mô hình AI đang chạy mà không cần restart server."""
+    success = prediction_service.load_model(request.model_file)
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không thể nạp mô hình '{request.model_file}'. Vui lòng kiểm tra file tồn tại trong thư mục app/models.",
+        )
+    return await health_check()
 
 
 @router.post("/predict", response_model=PredictionResponse)

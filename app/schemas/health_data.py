@@ -45,3 +45,26 @@ class HealthCheckResponse(BaseModel):
     status: str = Field(default="ok")
     model_loaded: bool = Field(default=False, description="Model đã được load chưa")
     model_version: str = Field(default="none")
+    active_model_file: Optional[str] = Field(default=None, description="Tên file model đang kích hoạt")
+    feature_count: Optional[int] = Field(default=None, description="Số lượng đặc trưng model yêu cầu")
+
+
+class ModelInfo(BaseModel):
+    """Thông tin chi tiết về một file model."""
+    filename: str = Field(..., description="Tên file model")
+    is_active: bool = Field(..., description="Model đang được sử dụng hay không")
+    size_kb: float = Field(..., description="Kích thước file (KB)")
+    feature_count: Optional[int] = Field(None, description="Số lượng đặc trưng yêu cầu")
+    expected_features: Optional[list[str]] = Field(None, description="Danh sách tên các đặc trưng")
+    model_type: Optional[str] = Field(None, description="Kiểu class của model (Pipeline, MLPClassifier,...)")
+
+
+class ModelListResponse(BaseModel):
+    """Danh sách các model có sẵn trong thư mục app/models."""
+    active_model: Optional[str] = Field(None, description="Tên file model đang kích hoạt")
+    available_models: list[ModelInfo] = Field(default_factory=list)
+
+
+class SelectModelRequest(BaseModel):
+    """Yêu cầu chuyển đổi model đang hoạt động."""
+    model_file: str = Field(..., description="Tên file model trong thư mục app/models (VD: mimic_afib_pipeline.pkl hoặc best_model_8165.pkl)")
