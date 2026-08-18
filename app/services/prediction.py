@@ -126,24 +126,33 @@ class PredictionService:
         if hasattr(self.model, "predict_proba"):
             probabilities = self.model.predict_proba(input_df)[0]
             classes = getattr(self.model, "classes_", [0, 1])
-            predicted_idx = int(np.argmax(probabilities))
-            predicted_label = classes[predicted_idx]
-            confidence = float(probabilities[predicted_idx])
+            
+            # Extract probability specifically for AFib class
+            afib_prob = 0.0
+            found_afib = False
+            for idx, c in enumerate(classes):
+                c_str = str(c).strip().lower()
+                if c_str in ("1", "1.0", "afib", "true"):
+                    afib_prob = float(probabilities[idx])
+                    found_afib = True
+                    break
+            
+            # If we couldn't identify the AFib class, fallback to index 1 or max prob
+            if not found_afib:
+                if len(probabilities) > 1:
+                    afib_prob = float(probabilities[1])
+                else:
+                    afib_prob = float(probabilities[0])
         else:
+            # Mô hình không hỗ trợ predict_proba (chỉ trả về nhãn cứng)
             pred = self.model.predict(input_df)[0]
-            predicted_label = pred
-            confidence = 1.0
+            pred_str = str(pred).strip().lower()
+            if pred_str in ("1", "1.0", "afib", "true"):
+                afib_prob = 1.0
+            else:
+                afib_prob = 0.0
 
-        # Chuẩn hóa nhãn văn bản hiển thị
-        pred_str = str(predicted_label).strip().lower()
-        if pred_str in ("0", "0.0", "normal", "false"):
-            label_display = "Normal (Bình thường)"
-        elif pred_str in ("1", "1.0", "afib", "true"):
-            label_display = "AFib (Rung tâm nhĩ)"
-        else:
-            label_display = str(predicted_label)
-
-        return label_display, round(confidence, 4)
+        return "AFib_Probability", round(afib_prob, 4)
 
 
 prediction_service = PredictionService()
