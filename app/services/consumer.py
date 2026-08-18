@@ -1,5 +1,3 @@
-"""Asynchronous RabbitMQ Consumer Worker cho AI Service."""
-
 import asyncio
 import json
 import logging
@@ -117,22 +115,24 @@ class RabbitMQConsumer:
             
             # 3. Chạy model dự đoán
             logger.info(f"[Record {record_id}] Running AFib prediction...")
-            prediction_label, confidence = prediction_service.predict(features)
+            _, afib_probability = prediction_service.predict(features)
             
-            if "AFib" in prediction_label or "1" in prediction_label:
-                callback_label = "AFIB"
-            elif "Normal" in prediction_label or "0" in prediction_label:
+            if afib_probability < 0.30:
                 callback_label = "NORMAL"
-            else:
+            elif afib_probability < 0.50:
                 callback_label = "UNCERTAIN"
+            elif afib_probability < 0.70:
+                callback_label = "AFIB_SUSPECTED"
+            else:
+                callback_label = "AFIB"
                 
-            logger.info(f"[Record {record_id}] Prediction done: label={callback_label}, conf={confidence:.4f}")
+            logger.info(f"[Record {record_id}] Prediction done: prob={afib_probability:.4f}, label={callback_label}")
 
             # 4. Gửi HTTP PATCH callback về Core Service
             callback_payload = {
                 "recordId": record_id,
                 "predictionLabel": callback_label,
-                "confidence": round(confidence, 4),
+                "confidence": round(afib_probability, 4),
                 "hrvFeaturesJson": json.dumps(features)
             }
             
