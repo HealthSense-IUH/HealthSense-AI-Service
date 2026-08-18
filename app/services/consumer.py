@@ -146,6 +146,20 @@ class RabbitMQConsumer:
 
         except Exception as e:
             logger.error(f"[Record {record_id}] Failed during processing or callback: {str(e)}", exc_info=True)
+            try:
+                fail_url = f"{settings.CORE_CALLBACK_URL}/fail"
+                logger.info(f"[Record {record_id}] Sending fail callback to {fail_url}")
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.patch(fail_url, json={
+                        "recordId": record_id,
+                        "errorReason": str(e)
+                    })
+                    if resp.status_code in [200, 204]:
+                        logger.info(f"[Record {record_id}] FAIL callback successful.")
+                    else:
+                        logger.error(f"[Record {record_id}] FAIL callback failed with status {resp.status_code}: {resp.text}")
+            except Exception as cb_e:
+                logger.error(f"[Record {record_id}] Could not send FAIL callback: {str(cb_e)}")
 
 
 consumer = RabbitMQConsumer()
