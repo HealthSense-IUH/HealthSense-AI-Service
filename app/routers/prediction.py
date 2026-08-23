@@ -1,21 +1,22 @@
 """Router cho API dự đoán rung tâm nhĩ (AFib)."""
 
 import io
-import pandas as pd
+
 import numpy as np
-from fastapi import APIRouter, HTTPException, UploadFile, File
+import pandas as pd
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.schemas.health_data import (
-    SensorDataRequest,
-    PredictionResponse,
     HealthCheckResponse,
     HRVFeatures,
     ModelListResponse,
+    PredictionResponse,
     SelectModelRequest,
+    SensorDataRequest,
 )
-from app.services.preprocessing import apply_physiological_filter
-from app.services.feature_engineering import extract_hrv_features, extract_features_from_csv_data
+from app.services.feature_engineering import extract_features_from_csv_data, extract_hrv_features
 from app.services.prediction import prediction_service
+from app.services.preprocessing import apply_physiological_filter
 
 router = APIRouter(prefix="/api", tags=["Prediction"])
 
@@ -87,44 +88,48 @@ async def predict(request: SensorDataRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Lỗi xử lý dữ liệu: {str(e)}",
-        )
+        ) from e
+
 
 @router.post("/predict-csv", response_model=PredictionResponse)
 async def predict_from_csv(file: UploadFile = File(...)):
-    if not file.filename or not file.filename.endswith('.csv'):
+    if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Vui lòng tải lên file định dạng CSV.")
-        
+
     try:
         content = await file.read()
         df = pd.read_csv(io.BytesIO(content))
-        
+
         # Hỗ trợ cả Time(ms) và time, IR hoặc ppg
-        time_col = 'Time(ms)' if 'Time(ms)' in df.columns else 'time'
-        ppg_col = 'IR' if 'IR' in df.columns else 'ppg'
-        
+        time_col = "Time(ms)" if "Time(ms)" in df.columns else "time"
+        ppg_col = "IR" if "IR" in df.columns else "ppg"
+
         if time_col not in df.columns or ppg_col not in df.columns:
-            raise HTTPException(status_code=400, detail=f"File CSV phải có cột thời gian và tín hiệu (VD: '{time_col}' và '{ppg_col}')")
-            
+            raise HTTPException(
+                status_code=400,
+                detail=f"File CSV phải có cột thời gian và tín hiệu (VD: '{time_col}' và '{ppg_col}')",
+            )
+
         time_ms_array = np.asarray(df[time_col].values, dtype=float)
         ppg_array = np.asarray(df[ppg_col].values, dtype=float)
-        
+
         # Nếu cột time nhỏ (ví dụ tính bằng giây), chuyển sang ms
         if np.max(time_ms_array) < 100000 and np.mean(np.diff(time_ms_array)) < 1.0:
             time_ms_array = time_ms_array * 1000.0
-            
+
         # Tính tần số lấy mẫu (fs) tự động
-        fs = 125.0 # Default cho MIMIC
+        fs = 125.0  # Default cho MIMIC
         if len(time_ms_array) >= 2:
-            dt = np.mean(np.diff(time_ms_array[:min(100, len(time_ms_array))])) / 1000.0
+            dt = np.mean(np.diff(time_ms_array[: min(100, len(time_ms_array))])) / 1000.0
             if dt > 0:
                 fs = 1.0 / dt
-                
+
         # Trích xuất đặc trưng
         features = extract_features_from_csv_data(time_ms_array, ppg_array, fs=fs)
-        
+
         # Gọi model
         prediction_label, confidence = prediction_service.predict(features)
-        
+
         return PredictionResponse(
             prediction=prediction_label,
             confidence=round(confidence, 4),
@@ -132,6 +137,6 @@ async def predict_from_csv(file: UploadFile = File(...)):
             model_version=prediction_service.model_version,
         )
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi xử lý dữ liệu: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý dữ liệu: {str(e)}") from e

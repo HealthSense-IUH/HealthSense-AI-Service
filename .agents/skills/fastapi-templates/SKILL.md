@@ -87,11 +87,13 @@ from app.core.database import get_db, Base
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+
 @pytest.fixture(scope="session")
 def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest.fixture
 async def db_session():
@@ -99,12 +101,11 @@ async def db_session():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    AsyncSessionLocal = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with AsyncSessionLocal() as session:
         yield session
+
 
 @pytest.fixture
 async def client(db_session):
@@ -116,18 +117,16 @@ async def client(db_session):
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
+
 # tests/test_users.py
 import pytest
+
 
 @pytest.mark.asyncio
 async def test_create_user(client):
     response = await client.post(
         "/api/v1/users/",
-        json={
-            "email": "test@example.com",
-            "password": "testpass123",
-            "name": "Test User"
-        }
+        json={"email": "test@example.com", "password": "testpass123", "name": "Test User"},
     )
     assert response.status_code == 201
     data = response.json()

@@ -1,9 +1,10 @@
-import os
 import glob
 import logging
+import os
+
 import joblib
-import numpy as np
 import pandas as pd
+
 from app.config import settings
 
 logger = logging.getLogger("uvicorn.error")
@@ -40,8 +41,19 @@ class PredictionService:
 
         # 3. Fallback mặc định 13 đặc trưng chuẩn cho MIMIC
         return [
-            "HR_mean", "Mean_NN", "SDNN", "RMSSD", "pNN50", "NN50", "CV",
-            "LF", "HF", "LF_HF_Ratio", "LF_norm", "HF_norm", "Total_Power"
+            "HR_mean",
+            "Mean_NN",
+            "SDNN",
+            "RMSSD",
+            "pNN50",
+            "NN50",
+            "CV",
+            "LF",
+            "HF",
+            "LF_HF_Ratio",
+            "LF_norm",
+            "HF_norm",
+            "Total_Power",
         ]
 
     def load_model(self, model_filename: str) -> bool:
@@ -82,7 +94,7 @@ class PredictionService:
         for filepath in sorted(files):
             fname = os.path.basename(filepath)
             size_kb = round(os.path.getsize(filepath) / 1024.0, 2)
-            is_active = (fname == self.active_model_file and self.is_model_loaded)
+            is_active = fname == self.active_model_file and self.is_model_loaded
 
             feat_list = None
             model_type = None
@@ -97,14 +109,16 @@ class PredictionService:
                 except Exception:
                     pass
 
-            result.append({
-                "filename": fname,
-                "is_active": is_active,
-                "size_kb": size_kb,
-                "feature_count": len(feat_list) if feat_list else None,
-                "expected_features": feat_list,
-                "model_type": model_type,
-            })
+            result.append(
+                {
+                    "filename": fname,
+                    "is_active": is_active,
+                    "size_kb": size_kb,
+                    "feature_count": len(feat_list) if feat_list else None,
+                    "expected_features": feat_list,
+                    "model_type": model_type,
+                }
+            )
         return result
 
     def predict(self, features_dict: dict) -> tuple[str, float]:
@@ -126,7 +140,7 @@ class PredictionService:
         if hasattr(self.model, "predict_proba"):
             probabilities = self.model.predict_proba(input_df)[0]
             classes = getattr(self.model, "classes_", [0, 1])
-            
+
             # Extract probability specifically for AFib class
             afib_prob = 0.0
             found_afib = False
@@ -136,7 +150,7 @@ class PredictionService:
                     afib_prob = float(probabilities[idx])
                     found_afib = True
                     break
-            
+
             # If we couldn't identify the AFib class, fallback to index 1 or max prob
             if not found_afib:
                 if len(probabilities) > 1:
