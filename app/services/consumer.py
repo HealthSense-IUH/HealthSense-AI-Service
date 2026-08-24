@@ -132,7 +132,9 @@ class RabbitMQConsumer:
 
                 # 2. Lọc nhiễu (Butterworth Bandpass Filter)
                 # Dùng dải 0.5Hz đến 5.0Hz để làm phẳng dốc hô hấp và loại bỏ nhiễu điện
-                y_clean = butter_bandpass_filter(y_inverted, lowcut=0.5, highcut=5.0, fs=fs, order=3)
+                y_clean = butter_bandpass_filter(
+                    y_inverted, lowcut=0.5, highcut=5.0, fs=fs, order=3
+                )
 
                 # 3. Giảm mẫu nội suy (Downsampling bằng Fourier) xuống 300 điểm
                 target_points = 300
@@ -151,7 +153,9 @@ class RabbitMQConsumer:
 
                 # Làm tròn 2 chữ số thập phân cho nhẹ JSON (300 điểm ~ 3KB)
                 features["chartData"] = np.round(y_norm, 2).tolist()
-                logger.info(f"[Record {record_id}] Generated chartData ({len(features['chartData'])} points)")
+                logger.info(
+                    f"[Record {record_id}] Generated chartData ({len(features['chartData'])} points)"
+                )
             except Exception as chart_err:
                 logger.error(f"[Record {record_id}] Failed to generate chartData: {str(chart_err)}")
                 features["chartData"] = []
