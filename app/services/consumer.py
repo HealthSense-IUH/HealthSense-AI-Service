@@ -121,6 +121,41 @@ class RabbitMQConsumer:
             )
             features = extract_features_from_csv_data(time_ms_array, ppg_array, fs=fs)
 
+            # --- TẠO DỮ LIỆU ĐỒ THỊ BẰNG PYTHON ---
+            try:
+                import scipy.signal
+                from app.services.feature_engineering import butter_bandpass_filter
+                
+                # 1. Nghịch đảo (Inversion)
+                y_inverted = -1.0 * ppg_array
+                
+                # 2. Lọc nhiễu (Butterworth Bandpass Filter)
+                # Dùng dải 0.5Hz đến 5.0Hz để làm phẳng dốc hô hấp và loại bỏ nhiễu điện
+                y_clean = butter_bandpass_filter(y_inverted, lowcut=0.5, highcut=5.0, fs=fs, order=3)
+                
+                # 3. Giảm mẫu nội suy (Downsampling bằng Fourier) xuống 300 điểm
+                target_points = 300
+                if len(y_clean) > target_points:
+                    y_resampled = scipy.signal.resample(y_clean, target_points)
+                else:
+                    y_resampled = y_clean
+                    
+                # 4. Chuẩn hóa biên độ (Min-Max Scaling về khung [0, 100])
+                y_min = np.min(y_resampled)
+                y_max = np.max(y_resampled)
+                if y_max > y_min:
+                    y_norm = 100.0 * (y_resampled - y_min) / (y_max - y_min)
+                else:
+                    y_norm = np.zeros_like(y_resampled)
+                    
+                # Làm tròn 2 chữ số thập phân cho nhẹ JSON (300 điểm ~ 3KB)
+                features["chartData"] = np.round(y_norm, 2).tolist()
+                logger.info(f"[Record {record_id}] Generated chartData ({len(features['chartData'])} points)")
+            except Exception as chart_err:
+                logger.error(f"[Record {record_id}] Failed to generate chartData: {str(chart_err)}")
+                features["chartData"] = []
+            # --------------------------------------
+
             # 3. Chạy model dự đoán
             logger.info(f"[Record {record_id}] Running AFib prediction...")
             _, afib_probability = prediction_service.predict(features)
