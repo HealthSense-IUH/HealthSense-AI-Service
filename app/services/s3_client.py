@@ -35,6 +35,7 @@ class S3Client:
         if self.endpoint_url:
             client_kwargs["endpoint_url"] = self.endpoint_url
 
+        # pyrefly: ignore [no-matching-overload]
         self.client = boto3.client(**client_kwargs)
 
     def download_file_as_bytes(self, s3_key: str) -> bytes:
