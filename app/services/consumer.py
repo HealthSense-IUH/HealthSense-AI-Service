@@ -121,6 +121,16 @@ class RabbitMQConsumer:
             )
             features = extract_features_from_csv_data(time_ms_array, ppg_array, fs=fs)
 
+            # SpO2 / BPM do firmware tính sẵn (cột trong CSV thiết bị).
+            # Vài giây đầu firmware chưa kịp tính nên ghi 0 -> chỉ lấy giá trị > 0.
+            # Lưu ý: SpO2 từ firmware cũ chưa hiệu chuẩn — hiển thị mức "tham khảo".
+            for col, key in [("SpO2", "deviceSpO2"), ("Bpm", "deviceBpm")]:
+                if col in df.columns:
+                    vals = pd.to_numeric(df[col], errors="coerce").to_numpy(dtype=float)
+                    vals = vals[np.isfinite(vals) & (vals > 0)]
+                    if len(vals) >= 5:
+                        features[key] = round(float(np.median(vals)), 1)
+
             # --- TẠO DỮ LIỆU ĐỒ THỊ BẰNG PYTHON ---
             try:
                 import scipy.signal

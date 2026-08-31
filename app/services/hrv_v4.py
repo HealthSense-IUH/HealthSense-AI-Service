@@ -198,6 +198,67 @@ def compute_hrv_features(nn_ms: np.ndarray, nn_times_s: np.ndarray) -> dict:
 
 
 # ============================================================
+# Chỉ số hiển thị bổ sung (không đưa vào model — chỉ để app show)
+# ============================================================
+def _hr_range(nn_ms: np.ndarray) -> dict:
+    """HR min/max trong phiên đo, dùng percentile 5/95 của nhịp tức thời
+    để không bị 1 khoảng NN nhiễu kéo lệch."""
+    if len(nn_ms) < 5:
+        return {}
+    inst_hr = 60000.0 / nn_ms
+    return {
+        "hrMin": round(float(np.percentile(inst_hr, 5)), 1),
+        "hrMax": round(float(np.percentile(inst_hr, 95)), 1),
+    }
+
+
+def _stress_score(nn_ms: np.ndarray) -> dict:
+    """Điểm căng thẳng 0-100 (THAM KHẢO) từ Baevsky Stress Index:
+    SI = AMo / (2 * Mo * MxDMn), bin 50 ms theo chuẩn. Quy về 0-100 bằng
+    thang log (SI ~30 thư giãn -> 0 điểm; SI ~1000 căng thẳng cao -> 100)."""
+    if len(nn_ms) < 10:
+        return {}
+    bins = np.arange(nn_ms.min() - 25.0, nn_ms.max() + 75.0, 50.0)
+    hist, edges = np.histogram(nn_ms, bins=bins)
+    if hist.sum() == 0:
+        return {}
+    k = int(np.argmax(hist))
+    amo = hist[k] / hist.sum() * 100.0
+    mo_s = (edges[k] + 25.0) / 1000.0
+    mxdmn_s = (nn_ms.max() - nn_ms.min()) / 1000.0
+    if mo_s <= 0 or mxdmn_s <= 0:
+        return {}
+    si = amo / (2.0 * mo_s * mxdmn_s)
+    score = (np.log(max(si, 1e-6)) - np.log(30.0)) / (np.log(1000.0) - np.log(30.0)) * 100.0
+    return {"stressScore": int(np.clip(round(score), 0, 100))}
+
+
+def _respiratory_rate(ppg_raw: np.ndarray, fs: float, duration_s: float) -> dict:
+    """Nhịp thở (lần/phút) từ dao động hô hấp trong PPG (dải 0.1-0.4 Hz).
+    Cần >= 30s dữ liệu để phổ đủ phân giải."""
+    if duration_s < 30 or len(ppg_raw) < int(fs * 30):
+        return {}
+    freqs, psd = sp_signal.welch(
+        ppg_raw - np.mean(ppg_raw), fs=fs, nperseg=min(len(ppg_raw), int(fs * 40))
+    )
+    band = (freqs >= 0.1) & (freqs <= 0.4)
+    if not band.any() or psd[band].max() <= 0:
+        return {}
+    f_resp = float(freqs[band][np.argmax(psd[band])])
+    return {"respiratoryRate": round(f_resp * 60.0, 1)}
+
+
+def _perfusion_index(ppg_raw: np.ndarray, ppg_filtered: np.ndarray) -> dict:
+    """Perfusion Index (%) = biên độ mạch đập (AC) / thành phần nền (DC).
+    PI thấp bất thường -> tiếp xúc cảm biến kém / tưới máu yếu."""
+    dc = float(np.median(ppg_raw))
+    if dc <= 0:
+        return {}
+    ac = 2.0 * float(np.sqrt(2.0)) * float(np.std(ppg_filtered))  # xấp xỉ đỉnh-đáy
+    return {"perfusionIndex": round(float(ac / dc * 100.0), 2)}
+
+
+# ============================================================
 # SQI + API cấp cao cho service
 # ============================================================
 def _spectral_concentration(ppg_filtered: np.ndarray, fs: float) -> float:
@@ -273,6 +334,11 @@ def extract_features_from_ppg(time_ms: np.ndarray, ppg: np.ndarray, fs: float = 
     features.update(sqi)
     # Chuỗi NN thô (ms) cho frontend vẽ đồ thị Poincaré (~80 giá trị/60s, nhẹ)
     features["nnIntervals"] = [round(float(v), 1) for v in nn_ms]
+    # Chỉ số hiển thị bổ sung (không tham gia model)
+    features.update(_hr_range(nn_ms))
+    features.update(_stress_score(nn_ms))
+    features.update(_respiratory_rate(ppg, fs, duration_s))
+    features.update(_perfusion_index(ppg, filtered))
     return features
 
 
@@ -290,4 +356,6 @@ def extract_features_from_rr(rr_intervals_ms: list[float]) -> dict:
     features = compute_hrv_features(nn, nn_times)
     features.update(sqi)
     features["nnIntervals"] = [round(float(v), 1) for v in nn]
+    features.update(_hr_range(nn))
+    features.update(_stress_score(nn))
     return features
