@@ -5,23 +5,23 @@
 **HealthSense AI Service** là microservice dự đoán trạng thái sức khỏe từ tín hiệu PPG (nhịp tim), được phát triển trên nền tảng FastAPI (Python).
 
 ### Chức năng chính
-- Nhận dữ liệu cảm biến PPG thô từ ESP32 hoặc Spring Boot Backend qua REST API.
-- Tiền xử lý tín hiệu: loại bỏ Baseline Wander bằng Butterworth Bandpass Filter.
-- Trích xuất 16 đặc trưng HRV (Heart Rate Variability) theo chuẩn Task Force 1996.
-- Dự đoán trạng thái sức khỏe (Sitting, Walking, ...) bằng model Random Forest.
+- Nhận dữ liệu cảm biến PPG thô từ ESP32 hoặc Spring Boot Backend (REST API + RabbitMQ/S3).
+- Xử lý tín hiệu pipeline v4 (đồng bộ 100% với repo HealthSense-ML, có parity test): Butterworth bandpass 0.5–8 Hz, dò nhịp theo prominence, lọc sinh lý NN 250–2000 ms.
+- Trích xuất 16 đặc trưng HRV chuẩn Task Force 1996 (SampEn thật, phổ Welch) + **SQI** — tín hiệu kém trả "chất lượng không đủ" thay vì đoán bừa.
+- Phát hiện Rung Nhĩ (AFib) bằng model **`healthsense_afib_pipeline.pkl`** (XGBoost + Scaler, huấn luyện 60 bệnh nhân MIMIC + AFDB, kiểm định LOSO + cross-dataset không data leakage — chi tiết: `app/models/model_card.json`).
 
 ### Công nghệ
 - **Framework:** FastAPI 0.115+
 - **Ngôn ngữ:** Python 3.12+
 - **Thư viện xử lý tín hiệu:** SciPy, NumPy
-- **Thư viện ML:** Scikit-learn, Joblib
+- **Thư viện ML:** Scikit-learn, XGBoost, Joblib
 - **Validation:** Pydantic v2
 
 ### Cấu trúc dự án
 Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự Controller-DTO-Service trong Spring Boot):
 - `routers/prediction.py`: Định nghĩa các API endpoint (POST /predict, GET /health).
 - `schemas/health_data.py`: Định nghĩa cấu trúc dữ liệu Request/Response (Pydantic).
-- `services/preprocessing.py`: Xử lý lọc tín hiệu PPG (Bandpass Filter, Peak Detection).
+- `services/hrv_v4.py`: Xử lý tín hiệu + 16 đặc trưng HRV + SQI (bản đồng bộ với ML Lab — sửa phải chạy `tests/parity_check.py`).
 - `services/feature_engineering.py`: Trích xuất 16 đặc trưng HRV (SDNN, RMSSD, LF/HF, ...).
 - `services/prediction.py`: Load model và thực hiện dự đoán.
 

@@ -39,21 +39,22 @@ class PredictionService:
             if hasattr(last_step, "feature_names_in_"):
                 return [str(f) for f in last_step.feature_names_in_]
 
-        # 3. Fallback mặc định 13 đặc trưng chuẩn cho MIMIC
+        # 3. Fallback: 13 đặc trưng của model v4 (nhóm LF bị loại khi huấn luyện
+        # vì không đủ tin cậy trên cửa sổ 30s)
         return [
             "HR_mean",
             "Mean_NN",
             "SDNN",
             "RMSSD",
-            "pNN50",
             "NN50",
+            "pNN50",
             "CV",
-            "LF",
             "HF",
-            "LF_HF_Ratio",
-            "LF_norm",
-            "HF_norm",
             "Total_Power",
+            "HF_norm",
+            "SD1",
+            "SD2",
+            "SampEn",
         ]
 
     def load_model(self, model_filename: str) -> bool:
@@ -131,8 +132,17 @@ class PredictionService:
         # Căn chỉnh thứ tự và danh sách đặc trưng khớp chính xác với mô hình
         feature_columns = self.expected_features
         aligned_data = {}
+        missing = []
         for col in feature_columns:
+            if col not in features_dict:
+                missing.append(col)
             aligned_data[col] = features_dict.get(col, 0.0)
+        if missing:
+            # Điền 0.0 âm thầm sẽ làm sai dự đoán mà không ai biết — phải cảnh báo to
+            logger.warning(
+                f"[PARITY] Thiếu đặc trưng {missing} so với model "
+                f"'{self.active_model_file}' — đã điền 0.0, kết quả có thể sai!"
+            )
 
         input_df = pd.DataFrame([aligned_data], columns=feature_columns)
 

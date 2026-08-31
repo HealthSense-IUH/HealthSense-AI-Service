@@ -14,9 +14,12 @@ from app.schemas.health_data import (
     SelectModelRequest,
     SensorDataRequest,
 )
-from app.services.feature_engineering import extract_features_from_csv_data, extract_hrv_features
+from app.services.feature_engineering import (
+    PoorSignalQualityError,
+    extract_features_from_csv_data,
+    extract_hrv_features,
+)
 from app.services.prediction import prediction_service
-from app.services.preprocessing import apply_physiological_filter
 
 router = APIRouter(prefix="/api", tags=["Prediction"])
 
@@ -64,15 +67,8 @@ async def predict(request: SensorDataRequest):
         )
 
     try:
-        valid_rr = apply_physiological_filter(request.rr_intervals)
-
-        if len(valid_rr) < 10:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Sau khi lọc nhiễu, chỉ còn {len(valid_rr)} nhịp tim hợp lệ. Cần tối thiểu 10 nhịp.",
-            )
-
-        features = extract_hrv_features(valid_rr)
+        # Lọc sinh lý + SQI nằm trong extract_hrv_features (pipeline v4)
+        features = extract_hrv_features(request.rr_intervals)
         prediction_label, confidence = prediction_service.predict(features)
 
         return PredictionResponse(
@@ -84,6 +80,8 @@ async def predict(request: SensorDataRequest):
 
     except HTTPException:
         raise
+    except PoorSignalQualityError as pe:
+        raise HTTPException(status_code=422, detail=str(pe)) from pe
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -136,6 +134,8 @@ async def predict_from_csv(file: UploadFile = File(...)):
             features=HRVFeatures(**features),
             model_version=prediction_service.model_version,
         )
+    except PoorSignalQualityError as pe:
+        raise HTTPException(status_code=422, detail=str(pe)) from pe
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:

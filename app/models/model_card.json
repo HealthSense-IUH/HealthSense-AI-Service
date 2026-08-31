@@ -1,0 +1,43 @@
+{
+  "name": "HealthSense AFib Detector",
+  "version": "4.1.0",
+  "model": "XGBoost",
+  "trained_on": "60 patients: MIMIC PERform AF (35, PPG 125Hz) + MIT-BIH AFDB (25, ECG 250Hz)",
+  "training_windows": 31305,
+  "features": [
+    "HR_mean",
+    "Mean_NN",
+    "SDNN",
+    "RMSSD",
+    "NN50",
+    "pNN50",
+    "CV",
+    "HF",
+    "Total_Power",
+    "HF_norm",
+    "SD1",
+    "SD2",
+    "SampEn"
+  ],
+  "input": "Cửa sổ 30s: chuỗi NN (ms) -> 13 đặc trưng HRV theo thứ tự `features`",
+  "output": "predict_proba[:, 1] = P(AFib); ngưỡng mặc định 0.5",
+  "source_balancing": "sample weight — mỗi dataset đóng góp tổng trọng số bằng nhau",
+  "evaluation": {
+    "pooled_loso_window": {
+      "accuracy": 0.9589,
+      "recall": 0.9716,
+      "specificity": 0.9501,
+      "roc_auc": 0.9883
+    },
+    "mimic_loso_subject_v4": {
+      "accuracy": 0.9429,
+      "recall": 1.0,
+      "roc_auc": 0.9309
+    },
+    "cross_dataset": {
+      "mimic_to_afdb_auc": 0.987,
+      "afdb_to_mimic_auc": 0.9757
+    }
+  },
+  "limitations": "Chưa kiểm định trên PPG cổ tay (MAX30102) và dữ liệu ngoài bệnh viện. Không phải thiết bị chẩn đoán y tế."
+}

@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     AWS_S3_ENDPOINT_URL: str = os.getenv("AWS_S3_ENDPOINT_URL", "")
 
     # AI Model Config
-    MODEL_FILE: str = os.getenv("MODEL_FILE", "mimic_afib_pipeline.pkl")
+    # healthsense_afib_pipeline.pkl: XGBoost + Scaler (pipeline v4, không leakage,
+    # kiểm định LOSO + cross-dataset). Xem app/models/model_card.json.
+    MODEL_FILE: str = os.getenv("MODEL_FILE", "healthsense_afib_pipeline.pkl")
 
     # Core Service Webhook URL
     CORE_CALLBACK_URL: str = os.getenv("CORE_CALLBACK_URL", "")
