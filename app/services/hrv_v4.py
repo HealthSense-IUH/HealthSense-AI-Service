@@ -38,6 +38,11 @@ RESAMPLE_FS = 4.0
 SQI_MIN_VALID_RATIO = 0.8  # tỉ lệ khoảng NN sống sót sau lọc sinh lý
 SQI_HR_MIN = 30.0
 SQI_HR_MAX = 220.0
+# Spectral concentration: PPG thật dồn năng lượng vào dải nhịp tim 0.5-3.5 Hz
+# (đo trên 35 bệnh nhân MIMIC + thiết bị MAX30102 thật: min 0.86; nhiễu trắng
+# chỉ ~0.41). Dưới ngưỡng này gần như chắc chắn là nhiễu, không phải mạch.
+SQI_MIN_SPECTRAL_CONC = 0.70
+SQI_HR_BAND = (0.5, 3.5)  # Hz — dải tần chứa nhịp tim 30-210 BPM
 
 
 class PoorSignalQualityError(ValueError):
@@ -195,13 +200,32 @@ def compute_hrv_features(nn_ms: np.ndarray, nn_times_s: np.ndarray) -> dict:
 # ============================================================
 # SQI + API cấp cao cho service
 # ============================================================
-def _check_quality(n_raw_intervals: int, nn_ms: np.ndarray, duration_s: float) -> dict:
+def _spectral_concentration(ppg_filtered: np.ndarray, fs: float) -> float:
+    """Phần năng lượng nằm trong dải nhịp tim (0.5-3.5 Hz) so với toàn dải
+    đã lọc (0.5-8 Hz). Mạch thật gần tuần hoàn -> cao; nhiễu -> thấp."""
+    freqs, psd = sp_signal.welch(ppg_filtered, fs=fs, nperseg=min(len(ppg_filtered), 1024))
+    band = psd[(freqs >= SQI_HR_BAND[0]) & (freqs <= SQI_HR_BAND[1])].sum()
+    total = psd[(freqs >= BANDPASS_LOW) & (freqs <= BANDPASS_HIGH)].sum()
+    return float(band / total) if total > 0 else 0.0
+
+
+def _check_quality(
+    n_raw_intervals: int,
+    nn_ms: np.ndarray,
+    duration_s: float,
+    spectral_conc: float | None = None,
+) -> dict:
     """Đánh giá chất lượng tín hiệu. Trả về dict sqi, raise nếu quá kém."""
     n_valid = len(nn_ms)
     valid_ratio = n_valid / n_raw_intervals if n_raw_intervals > 0 else 0.0
     hr = 60000.0 / np.mean(nn_ms) if n_valid else 0.0
 
     reasons = []
+    if spectral_conc is not None and spectral_conc < SQI_MIN_SPECTRAL_CONC:
+        reasons.append(
+            f"tín hiệu không có dạng sóng mạch (spectral concentration "
+            f"{spectral_conc:.2f} < {SQI_MIN_SPECTRAL_CONC}) — nhiều khả năng là nhiễu"
+        )
     if n_valid < MIN_BEATS:
         reasons.append(f"chỉ dò được {n_valid} nhịp hợp lệ (cần >= {MIN_BEATS})")
     if valid_ratio < SQI_MIN_VALID_RATIO:
@@ -216,6 +240,7 @@ def _check_quality(n_raw_intervals: int, nn_ms: np.ndarray, duration_s: float) -
         "sqi_n_valid_beats": int(n_valid),
         "sqi_valid_ratio": round(float(valid_ratio), 3),
         "sqi_duration_s": round(float(duration_s), 1),
+        "sqi_spectral_conc": round(spectral_conc, 3) if spectral_conc is not None else None,
         "sqi_ok": len(reasons) == 0,
     }
     if reasons:
@@ -241,7 +266,8 @@ def extract_features_from_ppg(time_ms: np.ndarray, ppg: np.ndarray, fs: float = 
     nn_ms, nn_times = beats_to_nn(beat_times)
 
     duration_s = (time_ms[-1] - time_ms[0]) / 1000.0 if len(time_ms) >= 2 else 0.0
-    sqi = _check_quality(max(len(beat_times) - 1, 0), nn_ms, duration_s)
+    conc = _spectral_concentration(filtered, fs)
+    sqi = _check_quality(max(len(beat_times) - 1, 0), nn_ms, duration_s, spectral_conc=conc)
 
     features = compute_hrv_features(nn_ms, nn_times)
     features.update(sqi)
