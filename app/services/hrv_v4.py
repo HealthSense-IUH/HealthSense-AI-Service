@@ -271,6 +271,8 @@ def extract_features_from_ppg(time_ms: np.ndarray, ppg: np.ndarray, fs: float = 
 
     features = compute_hrv_features(nn_ms, nn_times)
     features.update(sqi)
+    # Chuỗi NN thô (ms) cho frontend vẽ đồ thị Poincaré (~80 giá trị/60s, nhẹ)
+    features["nnIntervals"] = [round(float(v), 1) for v in nn_ms]
     return features
 
 
@@ -287,4 +289,5 @@ def extract_features_from_rr(rr_intervals_ms: list[float]) -> dict:
 
     features = compute_hrv_features(nn, nn_times)
     features.update(sqi)
+    features["nnIntervals"] = [round(float(v), 1) for v in nn]
     return features
