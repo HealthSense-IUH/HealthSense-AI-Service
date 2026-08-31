@@ -25,11 +25,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="HealthSense AI Service",
     description=(
-        "Microservice dự đoán trạng thái sức khỏe từ tín hiệu PPG (nhịp tim). "
-        "Nhận dữ liệu cảm biến MAX30102, trích xuất đặc trưng HRV, "
-        "và sử dụng model Random Forest để phân loại trạng thái."
+        "Microservice phát hiện Rung Nhĩ (AFib) từ tín hiệu PPG (nhịp tim). "
+        "Nhận dữ liệu cảm biến MAX30102, trích xuất 16 đặc trưng HRV (pipeline v4, "
+        "có SQI kiểm soát chất lượng tín hiệu), và phân loại bằng model XGBoost "
+        "đã kiểm định LOSO + cross-dataset (xem app/models/model_card.json)."
     ),
-    version="0.2.0-Event-Driven",
+    version="0.3.0-v4-model",
     lifespan=lifespan,
 )
 
@@ -51,6 +52,6 @@ async def root():
     """Trang chủ API."""
     return {
         "service": "HealthSense AI Service",
-        "version": "0.1.0",
+        "version": "0.3.0-v4-model",
         "docs": "/docs",
     }
