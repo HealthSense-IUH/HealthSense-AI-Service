@@ -38,7 +38,15 @@ class PredictionResponse(BaseModel):
     prediction: str = Field(..., description="Trạng thái dự đoán (AFib hoặc Normal)")
     confidence: float = Field(..., description="Độ tin cậy (0.0 - 1.0)")
     features: HRVFeatures = Field(..., description="Các đặc trưng HRV đã tính")
-    model_version: str = Field(default="dummy", description="Phiên bản model đang sử dụng")
+    model_version: str = Field(
+        default="dummy",
+        description=(
+            "Phiên bản model đang sử dụng, đọc từ thẻ model (VD: "
+            "'v4.1.0-healthsense_afib_pipeline'). Nếu model không có thẻ đi kèm "
+            "thì chỉ hiện tên file."
+        ),
+        examples=["v4.1.0-healthsense_afib_pipeline"],
+    )
 
 
 class HealthCheckResponse(BaseModel):
