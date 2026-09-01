@@ -23,7 +23,7 @@ Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự
 - `schemas/health_data.py`: Định nghĩa cấu trúc dữ liệu Request/Response (Pydantic).
 - `services/hrv_v4.py`: Xử lý tín hiệu + 16 đặc trưng HRV + SQI (bản đồng bộ với ML Lab — sửa phải chạy `tests/parity_check.py`).
 - `services/feature_engineering.py`: Trích xuất 16 đặc trưng HRV (SDNN, RMSSD, LF/HF, ...).
-- `services/prediction.py`: Load model và thực hiện dự đoán.
+- `services/prediction.py`: Load model và thực hiện dự đoán. Model được **kiểm tra trước khi nạp**: phải là sklearn Pipeline có bước tiền xử lý đi kèm, và chỉ đòi những đặc trưng service tính được. Không đạt thì bị từ chối và model đang chạy giữ nguyên.
 
 ### Cài đặt và Sử dụng
 1. Tạo môi trường ảo và cài đặt thư viện:
@@ -45,7 +45,20 @@ Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự
 | GET | `/` | Trang chủ |
 | GET | `/api/health` | Kiểm tra trạng thái server, model đang dùng và số đặc trưng |
 | GET | `/api/models` | Liệt kê toàn bộ các file model (.pkl, .joblib) có trong `app/models/` kèm metadata |
-| POST | `/api/models/active` | Chuyển đổi nóng model AI đang chạy mà không cần restart server |
+| POST | `/api/models/active` | Chuyển đổi nóng model AI đang chạy mà không cần restart server (model mới phải qua kiểm tra, xem bên dưới) |
+
+> **Chỉ có một model được triển khai: `healthsense_afib_pipeline.pkl`.**
+> Trước đây thư mục `app/models/` còn giữ 2 model đời cũ — `mimic_afib_pipeline.pkl`
+> (đời v1/v2) và `best_model_8165.pkl` (đời v3, huấn luyện trên pipeline bị
+> data leakage). Cả hai đã được gỡ.
+>
+> `best_model_8165.pkl` đặc biệt nguy hiểm: nó là `MLPClassifier` **trần, không
+> kèm scaler**, huấn luyện trên dữ liệu đã chuẩn hóa toàn cục từ trước. Nạp nó
+> rồi đưa đặc trưng thô vào thì kết quả sai hoàn toàn **mà không có lỗi nào báo
+> ra**. Vì vậy `load_model()` nay từ chối mọi model không đóng gói tiền xử lý
+> bên trong Pipeline.
+>
+> Lấy lại 2 file cũ từ lịch sử git nếu cần đối chiếu: `git checkout 2e25aa9 -- app/models`
 | POST | `/api/predict` | Nhận mảng RR intervals, trả về dự đoán AFib |
 | POST | `/api/predict-csv` | Tải lên file CSV chứa tín hiệu PPG thô để dự đoán |
 

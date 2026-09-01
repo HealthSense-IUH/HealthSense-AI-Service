@@ -72,9 +72,19 @@ class ModelListResponse(BaseModel):
 
 
 class SelectModelRequest(BaseModel):
-    """Yêu cầu chuyển đổi model đang hoạt động."""
+    """Yêu cầu chuyển đổi model đang hoạt động.
+
+    Model được kiểm tra trước khi thay: phải là sklearn Pipeline có bước tiền
+    xử lý đi kèm, và chỉ đòi những đặc trưng service tính được. Không đạt thì
+    bị từ chối và model đang chạy giữ nguyên.
+    """
 
     model_file: str = Field(
         ...,
-        description="Tên file model trong thư mục app/models (VD: mimic_afib_pipeline.pkl hoặc best_model_8165.pkl)",
+        description=(
+            "Tên file model trong thư mục app/models. "
+            "Hiện chỉ có healthsense_afib_pipeline.pkl (pipeline v4, không leakage). "
+            "Gọi GET /api/models để xem danh sách thực tế."
+        ),
+        examples=["healthsense_afib_pipeline.pkl"],
     )
