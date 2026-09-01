@@ -39,9 +39,22 @@ RESAMPLE_FS = 4.0
 # service tính được; model nào đòi đặc trưng ngoài danh sách này thì service
 # không phục vụ nổi và sẽ bị từ chối lúc nạp (xem services/prediction.py).
 HRV_FEATURE_NAMES = (
-    "HR_mean", "Mean_NN", "SDNN", "RMSSD", "NN50", "pNN50", "CV",
-    "LF", "HF", "Total_Power", "LF_HF_Ratio", "LF_norm", "HF_norm",
-    "SD1", "SD2", "SampEn",
+    "HR_mean",
+    "Mean_NN",
+    "SDNN",
+    "RMSSD",
+    "NN50",
+    "pNN50",
+    "CV",
+    "LF",
+    "HF",
+    "Total_Power",
+    "LF_HF_Ratio",
+    "LF_norm",
+    "HF_norm",
+    "SD1",
+    "SD2",
+    "SampEn",
 )
 
 # ===== SQI — ngưỡng chất lượng tín hiệu =====
