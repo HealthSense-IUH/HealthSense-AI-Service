@@ -6,6 +6,7 @@ import joblib
 import pandas as pd
 
 from app.config import settings
+from app.services.hrv_v4 import HRV_FEATURE_NAMES
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -25,7 +26,13 @@ class PredictionService:
         self.load_model(self.active_model_file)
 
     def _extract_feature_names(self, model) -> list[str]:
-        """Tự động trích xuất danh sách đặc trưng mà mô hình yêu cầu."""
+        """Danh sách đặc trưng mô hình yêu cầu. Trả về [] nếu không xác định được.
+
+        KHÔNG đoán mò: trước đây hàm này rơi về một danh sách 13 đặc trưng mặc
+        định khi không đọc được tên cột. Với một model lạ, làm vậy nghĩa là đưa
+        sai đặc trưng vào mà không ai biết. Nay thà trả rỗng để `_validate`
+        từ chối nạp còn hơn đoán.
+        """
         # 1. Trực tiếp từ thuộc tính feature_names_in_
         if hasattr(model, "feature_names_in_"):
             return [str(f) for f in model.feature_names_in_]
@@ -39,35 +46,65 @@ class PredictionService:
             if hasattr(last_step, "feature_names_in_"):
                 return [str(f) for f in last_step.feature_names_in_]
 
-        # 3. Fallback: 13 đặc trưng của model v4 (nhóm LF bị loại khi huấn luyện
-        # vì không đủ tin cậy trên cửa sổ 30s)
-        return [
-            "HR_mean",
-            "Mean_NN",
-            "SDNN",
-            "RMSSD",
-            "NN50",
-            "pNN50",
-            "CV",
-            "HF",
-            "Total_Power",
-            "HF_norm",
-            "SD1",
-            "SD2",
-            "SampEn",
-        ]
+        return []
+
+    def _validate(self, model, filename: str) -> tuple[bool, str]:
+        """Kiểm tra model có an toàn để phục vụ không. (ok, lý do nếu không).
+
+        Hai điều kiện, đều rút ra từ sự cố có thật trong chính dự án này:
+
+        1. PHẢI là sklearn Pipeline có bước tiền xử lý đi kèm.
+           File `best_model_8165.pkl` (đời v3) từng nằm trong thư mục này là
+           một MLPClassifier TRẦN, huấn luyện trên dữ liệu đã chuẩn hóa toàn
+           cục từ trước. Nạp nó rồi đưa đặc trưng THÔ vào thì mạng nơ-ron nhận
+           sai hoàn toàn thang đo — và vẫn trả về một xác suất trông hợp lý.
+           Hỏng âm thầm, không có lỗi nào báo ra.
+
+        2. PHẢI khai báo tên đặc trưng, và mọi đặc trưng đó service phải tính
+           được. Không khai tên thì không có cách nào căn cột cho đúng.
+        """
+        if not (hasattr(model, "steps") and len(getattr(model, "steps", [])) >= 2):
+            return False, (
+                f"'{filename}' không phải sklearn Pipeline có bước tiền xử lý. "
+                f"Model triển khai bắt buộc đóng gói scaler cùng bộ phân loại, "
+                f"nếu không sẽ nhận sai thang đo mà không báo lỗi."
+            )
+
+        names = self._extract_feature_names(model)
+        if not names:
+            return False, f"'{filename}' không khai báo tên đặc trưng (feature_names_in_)."
+
+        unknown = [n for n in names if n not in HRV_FEATURE_NAMES]
+        if unknown:
+            return False, (
+                f"'{filename}' đòi các đặc trưng service không tính được: {unknown}. "
+                f"Service chỉ sinh {len(HRV_FEATURE_NAMES)} đặc trưng HRV chuẩn."
+            )
+        return True, ""
 
     def load_model(self, model_filename: str) -> bool:
-        """Nạp hoặc chuyển đổi mô hình đang hoạt động trong bộ nhớ."""
+        """Nạp hoặc chuyển đổi mô hình đang hoạt động trong bộ nhớ.
+
+        Model mới chỉ được thay vào SAU KHI qua `_validate`. Nếu không đạt,
+        model đang chạy được giữ nguyên — một lần đổi model hỏng không được
+        phép làm sập service đang phục vụ.
+        """
         model_path = os.path.join(self._models_dir, model_filename)
 
         try:
             if not os.path.exists(model_path):
                 logger.error(f"[ERROR] Không tìm thấy file mô hình tại: {model_path}")
-                self.is_model_loaded = False
-                return False
+                return self.is_model_loaded
 
             loaded = joblib.load(model_path)
+
+            ok, reason = self._validate(loaded, model_filename)
+            if not ok:
+                logger.error(f"[REJECT] Từ chối nạp model: {reason}")
+                if self.is_model_loaded:
+                    logger.info(f"[KEEP] Giữ nguyên model đang chạy '{self.active_model_file}'.")
+                return False
+
             self.model = loaded
             self.active_model_file = model_filename
             self.model_version = f"v2.0-{os.path.splitext(model_filename)[0]}"
@@ -81,7 +118,6 @@ class PredictionService:
             return True
         except Exception as e:
             logger.error(f"[ERROR] Lỗi khi tải mô hình '{model_filename}': {e}", exc_info=True)
-            self.is_model_loaded = False
             return False
 
     def list_available_models(self) -> list[dict]:

@@ -34,6 +34,16 @@ MIN_BEATS = 10
 VLF_LOW, LF_LOW, LF_HIGH, HF_HIGH = 0.0033, 0.04, 0.15, 0.4
 RESAMPLE_FS = 4.0
 
+# 16 đặc trưng HRV mà `compute_hrv_features()` sinh ra — đồng bộ với
+# `healthsense_ml.config.ALL_FEATURES` bên ML Lab. Đây là TOÀN BỘ những gì
+# service tính được; model nào đòi đặc trưng ngoài danh sách này thì service
+# không phục vụ nổi và sẽ bị từ chối lúc nạp (xem services/prediction.py).
+HRV_FEATURE_NAMES = (
+    "HR_mean", "Mean_NN", "SDNN", "RMSSD", "NN50", "pNN50", "CV",
+    "LF", "HF", "Total_Power", "LF_HF_Ratio", "LF_norm", "HF_norm",
+    "SD1", "SD2", "SampEn",
+)
+
 # ===== SQI — ngưỡng chất lượng tín hiệu =====
 SQI_MIN_VALID_RATIO = 0.8  # tỉ lệ khoảng NN sống sót sau lọc sinh lý
 SQI_HR_MIN = 30.0
