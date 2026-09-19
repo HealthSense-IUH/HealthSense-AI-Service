@@ -1,0 +1,35 @@
+{
+  "version": "healthsense-af-v5",
+  "development_dataset": "MIMIC PERform AF",
+  "subjects": 35,
+  "features": [
+    "HR_mean",
+    "Mean_NN",
+    "SDNN",
+    "RMSSD",
+    "NN50",
+    "pNN50",
+    "CV",
+    "HF",
+    "Total_Power",
+    "HF_norm",
+    "SD1",
+    "SD2",
+    "SampEn",
+    "PPG_AC"
+  ],
+  "n_features": 14,
+  "window_s": 30,
+  "step_s": 10,
+  "iqr_filter": false,
+  "calibration": null,
+  "alert_threshold": 0.9,
+  "alert_policy": "3-of-3",
+  "best_params": {
+    "clf__max_depth": 10,
+    "clf__n_estimators": 100
+  },
+  "internal_nested_subject_sensitivity": 1.0,
+  "internal_nested_subject_specificity": 0.75,
+  "note": "Internal metrics are development estimates. External validation required before deployment."
+}
