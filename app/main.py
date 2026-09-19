@@ -45,6 +45,7 @@ app.add_middleware(
 
 # Đăng ký Router (tương tự @ComponentScan trong Spring Boot)
 app.include_router(prediction.router)
+app.include_router(prediction.models_router)
 
 
 @app.get("/", tags=["Root"])
