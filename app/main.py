@@ -28,7 +28,7 @@ app = FastAPI(
         "Microservice phát hiện Rung Nhĩ (AFib) từ tín hiệu PPG (nhịp tim). "
         "Nhận dữ liệu cảm biến MAX30102, trích xuất 16 đặc trưng HRV (pipeline v4, "
         "có SQI kiểm soát chất lượng tín hiệu), và phân loại bằng model XGBoost "
-        "đã kiểm định LOSO + cross-dataset (xem app/models/model_card.json)."
+        "đã kiểm định LOSO + cross-dataset (xem app/models/v4.json)."
     ),
     version="0.3.0-v4-model",
     lifespan=lifespan,

@@ -1,5 +1,7 @@
 {
-  "version": "healthsense-af-v5",
+  "version": "5.0.0",
+  "lab_version": "healthsense-af-v5",
+  "lab_artifact": "models/mimic/healthsense_af_v5_rf_ac_frozen.pkl",
   "development_dataset": "MIMIC PERform AF",
   "subjects": 35,
   "features": [
@@ -31,5 +33,6 @@
   },
   "internal_nested_subject_sensitivity": 1.0,
   "internal_nested_subject_specificity": 0.75,
-  "note": "Internal metrics are development estimates. External validation required before deployment."
+  "note": "Internal metrics are development estimates. External validation required before deployment.",
+  "warning": "BẢN REBUILD, không phải bản freeze gốc (sha256 khác — byte pickle phụ thuộc version sklearn/numpy). Chưa nạp được: service chưa tính PPG_AC."
 }

@@ -57,9 +57,7 @@ def main() -> int:
         return 1
 
     # 3. Dự đoán: nạp model như service (align theo feature_names_in_)
-    model = joblib.load(
-        os.path.join(SERVICE_ROOT, "app", "models", "healthsense_afib_pipeline.pkl")
-    )
+    model = joblib.load(os.path.join(SERVICE_ROOT, "app", "models", "v4.pkl"))
     cols = [str(f) for f in model.feature_names_in_]
     missing = [c for c in cols if c not in svc]
     if missing:
