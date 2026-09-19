@@ -41,11 +41,10 @@ class PredictionResponse(BaseModel):
     model_version: str = Field(
         default="dummy",
         description=(
-            "Phiên bản model đang sử dụng, đọc từ thẻ model (VD: "
-            "'v4.1.0-healthsense_afib_pipeline'). Nếu model không có thẻ đi kèm "
-            "thì chỉ hiện tên file."
+            "Phiên bản model đang sử dụng, đọc từ thẻ model đi kèm (VD: 'v4.1.0', "
+            "lấy từ app/models/v4.json). Nếu model không có thẻ thì chỉ hiện tên file."
         ),
-        examples=["v4.1.0-healthsense_afib_pipeline"],
+        examples=["v4.1.0"],
     )
 
 
@@ -91,8 +90,8 @@ class SelectModelRequest(BaseModel):
         ...,
         description=(
             "Tên file model trong thư mục app/models. "
-            "Hiện chỉ có healthsense_afib_pipeline.pkl (pipeline v4, không leakage). "
+            "Quy ước vN.pkl; hiện chỉ v4.pkl (pipeline v4, không leakage) nạp được. "
             "Gọi GET /api/models để xem danh sách thực tế."
         ),
-        examples=["healthsense_afib_pipeline.pkl"],
+        examples=["v4.pkl"],
     )

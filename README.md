@@ -8,7 +8,7 @@
 - Nhận dữ liệu cảm biến PPG thô từ ESP32 hoặc Spring Boot Backend (REST API + RabbitMQ/S3).
 - Xử lý tín hiệu pipeline v4 (đồng bộ 100% với repo HealthSense-ML, có parity test): Butterworth bandpass 0.5–8 Hz, dò nhịp theo prominence, lọc sinh lý NN 250–2000 ms.
 - Trích xuất 16 đặc trưng HRV chuẩn Task Force 1996 (SampEn thật, phổ Welch) + **SQI** — tín hiệu kém trả "chất lượng không đủ" thay vì đoán bừa.
-- Phát hiện Rung Nhĩ (AFib) bằng model **`healthsense_afib_pipeline.pkl`** (XGBoost + Scaler, huấn luyện 60 bệnh nhân MIMIC + AFDB, kiểm định LOSO + cross-dataset không data leakage — chi tiết: `app/models/model_card.json`).
+- Phát hiện Rung Nhĩ (AFib) bằng model **`v4.pkl`** (XGBoost + Scaler, huấn luyện 60 bệnh nhân MIMIC + AFDB, kiểm định LOSO + cross-dataset không data leakage — chi tiết: `app/models/v4.json`).
 
 ### Công nghệ
 - **Framework:** FastAPI 0.115+
@@ -47,18 +47,25 @@ Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự
 | GET | `/api/models` | Liệt kê toàn bộ các file model (.pkl, .joblib) có trong `app/models/` kèm metadata |
 | POST | `/api/models/active` | Chuyển đổi nóng model AI đang chạy mà không cần restart server (model mới phải qua kiểm tra, xem bên dưới) |
 
-> **Chỉ có một model được triển khai: `healthsense_afib_pipeline.pkl`.**
-> Trước đây thư mục `app/models/` còn giữ 2 model đời cũ — `mimic_afib_pipeline.pkl`
-> (đời v1/v2) và `best_model_8165.pkl` (đời v3, huấn luyện trên pipeline bị
-> data leakage). Cả hai đã được gỡ.
+> **Quy ước đặt tên:** mỗi model là `vN.pkl` kèm thẻ `vN.json` cùng tên (thẻ ghi
+> phiên bản, đặc trưng, dữ liệu huấn luyện, điểm số và leakage đã biết).
 >
-> `best_model_8165.pkl` đặc biệt nguy hiểm: nó là `MLPClassifier` **trần, không
-> kèm scaler**, huấn luyện trên dữ liệu đã chuẩn hóa toàn cục từ trước. Nạp nó
-> rồi đưa đặc trưng thô vào thì kết quả sai hoàn toàn **mà không có lỗi nào báo
-> ra**. Vì vậy `load_model()` nay từ chối mọi model không đóng gói tiền xử lý
-> bên trong Pipeline.
+> | File | Model | Nạp được? |
+> |------|-------|-----------|
+> | `v1.pkl` `v2.pkl` `v3.pkl` | Hiện vật học tập từ ML-Lab (pipeline còn leakage) | ❌ không khai `feature_names_in_` |
+> | **`v4.pkl`** | **XGBoost 4.1.0 — model triển khai duy nhất** | ✅ mặc định |
+> | `v5.pkl` | RandomForest 14 đặc trưng (bản rebuild, xem `v5.json`) | ❌ cần `PPG_AC`, service chưa tính |
 >
-> Lấy lại 2 file cũ từ lịch sử git nếu cần đối chiếu: `git checkout 2e25aa9 -- app/models`
+> **Chỉ `v4.pkl` phục vụ dự đoán.** Các file còn lại có trong `GET /api/models`
+> để đối chiếu lịch sử, nhưng `POST /api/models/active` sẽ từ chối chúng và giữ
+> nguyên model đang chạy.
+>
+> Vì sao phải chặn: thư mục này từng chứa `best_model_8165.pkl` (đời v3) — một
+> `MLPClassifier` **trần, không kèm scaler**, huấn luyện trên dữ liệu đã chuẩn
+> hóa toàn cục từ trước. Nạp nó rồi đưa đặc trưng thô vào thì kết quả sai hoàn
+> toàn **mà không có lỗi nào báo ra**. Nên `load_model()` từ chối mọi model
+> không đóng gói tiền xử lý trong Pipeline, không khai tên đặc trưng, hoặc đòi
+> đặc trưng service không tính được.
 | POST | `/api/predict` | Nhận mảng RR intervals, trả về dự đoán AFib |
 | POST | `/api/predict-csv` | Tải lên file CSV chứa tín hiệu PPG thô để dự đoán |
 
