@@ -23,6 +23,15 @@ from app.services.prediction import prediction_service
 
 router = APIRouter(prefix="/api", tags=["Prediction"])
 
+# Router riêng cho quản lý model.
+#
+# FastAPI CỘNG DỒN tag của route vào tag của router chứ không ghi đè. Trước đây
+# hai route /models và /models/active nằm chung `router` (tag "Prediction") rồi
+# tự khai thêm tags=["Model Management"], nên chúng mang CẢ HAI tag và Swagger
+# vẽ chúng ở cả hai mục — nhìn như service có endpoint trùng lặp. Tách thành
+# router riêng là cách duy nhất cho mỗi route đúng một tag.
+models_router = APIRouter(prefix="/api", tags=["Model Management"])
+
 
 @router.get("/health", response_model=HealthCheckResponse)
 async def health_check():
@@ -36,7 +45,7 @@ async def health_check():
     )
 
 
-@router.get("/models", response_model=ModelListResponse, tags=["Model Management"])
+@models_router.get("/models", response_model=ModelListResponse)
 async def list_models():
     """Liệt kê danh sách tất cả các mô hình có sẵn trong thư mục app/models."""
     models = prediction_service.list_available_models()
@@ -46,7 +55,7 @@ async def list_models():
     )
 
 
-@router.post("/models/active", response_model=HealthCheckResponse, tags=["Model Management"])
+@models_router.post("/models/active", response_model=HealthCheckResponse)
 async def switch_model(request: SelectModelRequest):
     """Chuyển đổi nóng mô hình AI đang chạy mà không cần restart server."""
     success = prediction_service.load_model(request.model_file)
