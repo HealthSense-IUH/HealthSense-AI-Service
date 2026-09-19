@@ -54,7 +54,6 @@ Dự án được tổ chức theo mô hình Router-Schema-Service (tương tự
 > |------|-------|-----------|
 > | `v1.pkl` `v2.pkl` `v3.pkl` | Hiện vật học tập từ ML-Lab (pipeline còn leakage) | ❌ không khai `feature_names_in_` |
 > | **`v4.pkl`** | **XGBoost 4.1.0 — model triển khai duy nhất** | ✅ mặc định |
-> | `v5.pkl` | RandomForest 14 đặc trưng (bản rebuild, xem `v5.json`) | ❌ cần `PPG_AC`, service chưa tính |
 >
 > **Chỉ `v4.pkl` phục vụ dự đoán.** Các file còn lại có trong `GET /api/models`
 > để đối chiếu lịch sử, nhưng `POST /api/models/active` sẽ từ chối chúng và giữ
