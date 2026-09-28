@@ -10,7 +10,8 @@ class SensorDataRequest(BaseModel):
 
     rr_intervals: list[float] = Field(..., description="Mảng R-R intervals (tính bằng mili-giây)")
     is_workout_active: bool = Field(
-        default=False, description="Cờ trạng thái phiên tập luyện. Nếu True, bỏ qua dự đoán AFib do nhiễu vận động."
+        default=False,
+        description="Cờ trạng thái phiên tập luyện. Nếu True, bỏ qua dự đoán AFib do nhiễu vận động.",
     )
 
 
