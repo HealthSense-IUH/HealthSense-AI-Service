@@ -1,0 +1,49 @@
+{
+  "version": "v2",
+  "title": "Làm sạch dữ liệu + đặc trưng phi tuyến",
+  "channel": "PPG",
+  "input": "Cửa sổ 30s -> 16 đặc trưng HRV, ĐÚNG THỨ TỰ trong \"features\"",
+  "features": [
+    "HR_mean",
+    "Mean_NN",
+    "SDNN",
+    "RMSSD",
+    "NN50",
+    "pNN50",
+    "CV",
+    "LF",
+    "HF",
+    "Total_Power",
+    "LF_HF_Ratio",
+    "LF_norm",
+    "HF_norm",
+    "SD1",
+    "SD2",
+    "SampEn"
+  ],
+  "output": "predict_proba[:, 1] = P(AFib); ngưỡng mặc định 0.5",
+  "trained_on": {
+    "dataset": "MIMIC PERform AF",
+    "n_subjects": 35,
+    "n_windows_available": 1400,
+    "n_windows_used": 1349,
+    "n_windows_dropped_by_cleaning": 51
+  },
+  "honest_score_loso": {
+    "window_accuracy": 0.9257,
+    "window_roc_auc": 0.9329,
+    "subject_accuracy": 0.9429,
+    "subject_recall": 1.0
+  },
+  "score_if_graded_the_old_way": {
+    "accuracy": 0.9889,
+    "note": "Chia ngẫu nhiên theo cửa sổ — con số bị thổi phồng."
+  },
+  "inflation_points": 0.0632,
+  "known_leakage": [
+    "Chia ngẫu nhiên theo cửa sổ (kế thừa v1).",
+    "Luật làm sạch dùng NHÃN và áp lên cả tập test -> xóa mất các ca khó.",
+    "Ngưỡng SQI được chọn bằng điểm test (xem sqi_threshold_sweep)."
+  ],
+  "warning": "HIỆN VẬT HỌC TẬP — không dùng cho sản phẩm. Model triển khai duy nhất là models/healthsense_afib_pipeline.pkl."
+}

@@ -1,7 +1,7 @@
 """Trích đặc trưng HRV cho service — chuyển sang pipeline v4.
 
 Toàn bộ logic tính toán nằm trong `hrv_v4.py` (bản sao đồng bộ với ML Lab,
-nơi model `healthsense_afib_pipeline.pkl` được huấn luyện). File này chỉ giữ
+nơi model `v4.pkl` được huấn luyện). File này chỉ giữ
 API cũ cho consumer/router, và bộ lọc bandpass riêng cho phần vẽ đồ thị.
 
 Bản cũ (dò đỉnh trên sóng thô, SampEn xấp xỉ, tắt lọc sinh lý) đã bị thay:

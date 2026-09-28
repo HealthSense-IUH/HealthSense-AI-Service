@@ -50,27 +50,22 @@ class PredictionService:
         return []
 
     def _read_card(self, model_filename: str) -> dict:
-        """Thẻ model đi kèm: ưu tiên sidecar `<tên>.json`, sau đó `model_card.json`.
+        """Thẻ model đi kèm: sidecar cùng tên, `vN.pkl` -> `vN.json`.
 
-        `model_card.json` chỉ được dùng cho ĐÚNG model mà nó mô tả (model mặc
-        định trong cấu hình) — nếu không sẽ gán nhầm phiên bản của model này
-        cho model khác.
+        Mỗi model có ĐÚNG một thẻ riêng. Trước đây model mặc định dùng chung
+        file `model_card.json`; quy ước đó đã bỏ vì một thẻ không gắn tên với
+        model nào thì rất dễ bị gán nhầm phiên bản cho model khác.
         """
-        base = os.path.splitext(model_filename)[0]
-        candidates = [f"{base}.json"]
-        if model_filename == settings.MODEL_FILE:
-            candidates.append("model_card.json")
-
-        for name in candidates:
-            path = os.path.join(self._models_dir, name)
-            if not os.path.exists(path):
-                continue
-            try:
-                with open(path, encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.warning(f"[CARD] Không đọc được thẻ model '{name}': {e}")
-        return {}
+        name = f"{os.path.splitext(model_filename)[0]}.json"
+        path = os.path.join(self._models_dir, name)
+        if not os.path.exists(path):
+            return {}
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"[CARD] Không đọc được thẻ model '{name}': {e}")
+            return {}
 
     def _validate(self, model, filename: str) -> tuple[bool, str]:
         """Kiểm tra model có an toàn để phục vụ không. (ok, lý do nếu không).
@@ -135,11 +130,16 @@ class PredictionService:
             # chạy model 4.1.0 — ai gọi /api/health cũng tưởng service dùng
             # model đời v2.
             card = self._read_card(model_filename)
-            version = str(card.get("version") or "").strip()
+            # Thẻ có nơi ghi "v1", có nơi ghi "4.1.0" — bỏ tiền tố "v" để chuỗi
+            # báo ra luôn có dạng thống nhất "v<số>", không thành "vv1".
+            version = str(card.get("version") or "").strip().lstrip("vV")
 
             self.model = loaded
             self.active_model_file = model_filename
-            self.model_version = f"v{version}-{base}" if version else base
+            # Tên file đã mang số đời (vN.pkl) nên không ghép thêm tên file vào
+            # nữa — trước đây ra "v4.1.0-healthsense_afib_pipeline". File đang
+            # chạy vẫn xem được ở `active_model_file`.
+            self.model_version = f"v{version}" if version else base
             self.expected_features = self._extract_feature_names(loaded)
             self.is_model_loaded = True
 

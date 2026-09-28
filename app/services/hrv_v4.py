@@ -2,7 +2,7 @@
 
 Đây là bản sao có kiểm soát (vendored copy) của pipeline huấn luyện v4 trong
 repo HealthSense-ML (`src/healthsense_ml/signal_processing.py` +
-`hrv_features.py`). Model `healthsense_afib_pipeline.pkl` được huấn luyện
+`hrv_features.py`). Model `v4.pkl` được huấn luyện
 bằng CHÍNH các hàm này — mọi thay đổi ở đây phải đồng bộ 2 phía và chạy lại
 parity test (`tests/parity_check.py`), nếu không đặc trưng đưa vào model sẽ
 lệch so với lúc huấn luyện một cách im lặng.
