@@ -60,6 +60,14 @@ async def switch_model(request: SelectModelRequest):
 
 @router.post("/predict", response_model=PredictionResponse)
 async def predict(request: SensorDataRequest):
+    if request.is_workout_active:
+        return PredictionResponse(
+            prediction="MUTED_DURING_WORKOUT",
+            confidence=0.0,
+            features=HRVFeatures(),
+            model_version="muted",
+        )
+
     if len(request.rr_intervals) < 10:
         raise HTTPException(
             status_code=400,
